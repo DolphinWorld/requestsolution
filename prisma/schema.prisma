@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Idea {
+  id               String    @id @default(uuid())
+  createdAt        DateTime  @default(now()) @map("created_at")
+  createdByAnonId  String    @map("created_by_anon_id")
+  rawInputText     String    @map("raw_input_text")
+  title            String
+  problemStatement String    @map("problem_statement")
+  tags             String    @default("[]") // JSON-serialized string[]
+  features         String    @default("[]") // JSON-serialized Feature[]
+  openQuestions    String    @default("[]") @map("open_questions") // JSON-serialized string[]
+  upvotesCount     Int       @default(0) @map("upvotes_count")
+  commentsCount    Int       @default(0) @map("comments_count")
+  embedding        String?   // JSON-serialized float[] for similarity
+
+  tasks    Task[]
+  comments Comment[]
+  votes    Vote[]
+
+  @@map("ideas")
+}
+
+model Task {
+  id                 String    @id @default(uuid())
+  ideaId             String    @map("idea_id")
+  title              String
+  description        String    @default("")
+  acceptanceCriteria String    @default("") @map("acceptance_criteria")
+  effort             String    @default("M") // "S" | "M" | "L" | "XL"
+  status             String    @default("open") // "open" | "in_progress" | "done"
+  claimedByAnonId    String?   @map("claimed_by_anon_id")
+  claimedAt          DateTime? @map("claimed_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  idea  Idea       @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  links TaskLink[]
+
+  @@map("tasks")
+}
+
+model TaskLink {
+  id              String   @id @default(uuid())
+  taskId          String   @map("task_id")
+  url             String
+  label           String   @default("")
+  createdByAnonId String   @map("created_by_anon_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_links")
+}
+
+model Comment {
+  id              String   @id @default(uuid())
+  ideaId          String   @map("idea_id")
+  body            String
+  createdByAnonId String   @map("created_by_anon_id")
+  nickname        String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Vote {
+  ideaId    String   @map("idea_id")
+  anonId    String   @map("anon_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@unique([ideaId, anonId])
+  @@map("votes")
+}
+
+model AnonUser {
+  id        String   @id
+  nickname  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("anon_users")
+}
