@@ -1,3 +1,14 @@
+---
+title: Requestsolution
+emoji: 🏆
+colorFrom: red
+colorTo: indigo
+sdk: docker
+pinned: false
+license: cc-by-nc-sa-4.0
+short_description: Need solutions for my requests
+---
+
 # RequestSolution
 
 A community-driven platform where users submit product ideas, AI generates structured specifications (features + tasks), and the community validates, discusses, and builds together.

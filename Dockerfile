@@ -28,9 +28,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+# HF Spaces runs as uid 1000
+RUN addgroup --system --gid 1000 nodejs && \
+    adduser --system --uid 1000 nextjs
 
 # Copy necessary files
 COPY --from=builder /app/public ./public
@@ -48,9 +48,10 @@ RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 
 USER nextjs
 
-EXPOSE 3000
+# HF Spaces expects port 7860
+EXPOSE 7860
 
-ENV PORT=3000
+ENV PORT=7860
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL="file:/app/data/prod.db"
 
