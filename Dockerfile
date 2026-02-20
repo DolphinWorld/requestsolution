@@ -1,6 +1,6 @@
 FROM node:22-slim AS base
 
-# Install OpenSSL for Prisma
+# Install OpenSSL for Prisma + build tools for native modules
 RUN apt-get update && apt-get install -y openssl python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -28,14 +28,13 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# HF Spaces runs as uid 1000
-RUN addgroup --system --gid 1000 nodejs && \
-    adduser --system --uid 1000 nextjs
+# Use the existing 'node' user (uid 1000) that comes with the node image
+# HF Spaces also runs as uid 1000, so this is compatible
 
 # Copy necessary files
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/generated ./generated
@@ -44,9 +43,9 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 
 # Create data directory for SQLite with correct permissions
-RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
+RUN mkdir -p /app/data && chown node:node /app/data
 
-USER nextjs
+USER node
 
 # HF Spaces expects port 7860
 EXPOSE 7860
