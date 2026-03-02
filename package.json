@@ -9,7 +9,7 @@
     "lint": "next lint",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
-    "postinstall": "npx prisma generate"
+    "prisma:generate": "npx prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.4.1",

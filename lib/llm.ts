@@ -1,8 +1,12 @@
 import OpenAI from "openai";
 
+if (!process.env.OPENAI_API_KEY?.trim()) {
+  throw new Error("OPENAI_API_KEY environment variable is required");
+}
+
 export const llm = new OpenAI({
   baseURL: process.env.OPENAI_API_BASE_URL || "https://api.openai.com/v1",
-  apiKey: process.env.OPENAI_API_KEY || "",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export const LLM_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";

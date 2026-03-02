@@ -3,12 +3,23 @@ const rateLimitMap = new Map<
   { count: number; resetTime: number }
 >();
 
+const CLEANUP_THRESHOLD = 10_000;
+
+function pruneExpired(now: number) {
+  if (rateLimitMap.size < CLEANUP_THRESHOLD) return;
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetTime) rateLimitMap.delete(key);
+  }
+}
+
 export function rateLimit(
   identifier: string,
   limit: number = 5,
   windowMs: number = 60 * 60 * 1000 // 1 hour
 ): { success: boolean; remaining: number } {
   const now = Date.now();
+  pruneExpired(now);
+
   const entry = rateLimitMap.get(identifier);
 
   if (!entry || now > entry.resetTime) {

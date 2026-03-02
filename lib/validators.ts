@@ -22,12 +22,18 @@ export const taskStatusSchema = z.object({
 });
 
 export const taskLinkSchema = z.object({
-  url: z.url("Must be a valid URL"),
+  url: z
+    .url("Must be a valid URL")
+    .refine((u) => /^https?:\/\//i.test(u), "Only http and https URLs are allowed"),
   label: z.string().max(200).optional(),
 });
 
 export const nicknameSchema = z.object({
-  nickname: z.string().min(1).max(30),
+  nickname: z
+    .string()
+    .min(1)
+    .max(30)
+    .regex(/^[\w\s\-]+$/, "Only letters, numbers, spaces, hyphens, and underscores are allowed"),
 });
 
 export const specSchema = z.object({

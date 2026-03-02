@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAnonId } from "@/lib/anon-id";
+import { rateLimit } from "@/lib/rate-limit";
 import { taskLinkSchema } from "@/lib/validators";
 
 export async function POST(
@@ -10,11 +11,33 @@ export async function POST(
   const { taskId } = await params;
   const anonId = await getAnonId();
 
-  const task = await prisma.task.findUnique({ where: { id: taskId } });
+  const rl = rateLimit(`link:${anonId}`, 20);
+  if (!rl.success) {
+    console.warn("[SECURITY] Rate limit exceeded", { anonId, endpoint: "POST /api/tasks/[taskId]/links" });
+    return NextResponse.json(
+      { error: { message: "Rate limited.", code: "RATE_LIMITED" } },
+      { status: 429 }
+    );
+  }
+
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: { idea: { select: { createdByAnonId: true } } },
+  });
   if (!task) {
     return NextResponse.json(
       { error: { message: "Task not found", code: "NOT_FOUND" } },
       { status: 404 }
+    );
+  }
+
+  const isClaimant = task.claimedByAnonId === anonId;
+  const isIdeaOwner = task.idea.createdByAnonId === anonId;
+  if (!isClaimant && !isIdeaOwner) {
+    console.warn("[SECURITY] Unauthorized link add attempt", { anonId, taskId, endpoint: "POST /api/tasks/[taskId]/links" });
+    return NextResponse.json(
+      { error: { message: "Only the task claimant or idea owner can add links", code: "FORBIDDEN" } },
+      { status: 403 }
     );
   }
 

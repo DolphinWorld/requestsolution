@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAnonId } from "@/lib/anon-id";
+import { rateLimit } from "@/lib/rate-limit";
 import { nicknameSchema } from "@/lib/validators";
 
 export async function POST(request: NextRequest) {
   const anonId = await getAnonId();
+
+  const rl = rateLimit(`nickname:${anonId}`, 5);
+  if (!rl.success) {
+    console.warn("[SECURITY] Rate limit exceeded", { anonId, endpoint: "POST /api/me/nickname" });
+    return NextResponse.json(
+      { error: { message: "Rate limited. Max 5 nickname changes per hour.", code: "RATE_LIMITED" } },
+      { status: 429 }
+    );
+  }
 
   const body = await request.json();
   const parsed = nicknameSchema.safeParse(body);

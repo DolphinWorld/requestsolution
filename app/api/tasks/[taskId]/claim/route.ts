@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAnonId } from "@/lib/anon-id";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(
   _request: NextRequest,
@@ -8,6 +9,15 @@ export async function POST(
 ) {
   const { taskId } = await params;
   const anonId = await getAnonId();
+
+  const rl = rateLimit(`claim:${anonId}`, 20);
+  if (!rl.success) {
+    console.warn("[SECURITY] Rate limit exceeded", { anonId, endpoint: "POST /api/tasks/[taskId]/claim" });
+    return NextResponse.json(
+      { error: { message: "Rate limited.", code: "RATE_LIMITED" } },
+      { status: 429 }
+    );
+  }
 
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task) {

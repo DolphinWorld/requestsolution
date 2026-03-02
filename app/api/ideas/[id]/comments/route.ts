@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAnonId } from "@/lib/anon-id";
+import { rateLimit } from "@/lib/rate-limit";
 import { commentSchema } from "@/lib/validators";
 
 export async function GET(
@@ -23,6 +24,15 @@ export async function POST(
 ) {
   const { id } = await params;
   const anonId = await getAnonId();
+
+  const rl = rateLimit(`comment:${anonId}`, 10);
+  if (!rl.success) {
+    console.warn("[SECURITY] Rate limit exceeded", { anonId, endpoint: "POST /api/ideas/[id]/comments" });
+    return NextResponse.json(
+      { error: { message: "Rate limited. Max 10 comments per hour.", code: "RATE_LIMITED" } },
+      { status: 429 }
+    );
+  }
 
   const idea = await prisma.idea.findUnique({ where: { id } });
   if (!idea) {

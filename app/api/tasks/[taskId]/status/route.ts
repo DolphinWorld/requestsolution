@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAnonId } from "@/lib/anon-id";
+import { rateLimit } from "@/lib/rate-limit";
 import { taskStatusSchema } from "@/lib/validators";
 
 export async function POST(
@@ -9,6 +10,15 @@ export async function POST(
 ) {
   const { taskId } = await params;
   const anonId = await getAnonId();
+
+  const rl = rateLimit(`status:${anonId}`, 30);
+  if (!rl.success) {
+    console.warn("[SECURITY] Rate limit exceeded", { anonId, endpoint: "POST /api/tasks/[taskId]/status" });
+    return NextResponse.json(
+      { error: { message: "Rate limited.", code: "RATE_LIMITED" } },
+      { status: 429 }
+    );
+  }
 
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task) {
@@ -32,6 +42,7 @@ export async function POST(
   // If setting to open, unclaim the task
   if (status === "open") {
     if (task.claimedByAnonId && task.claimedByAnonId !== anonId) {
+      console.warn("[SECURITY] Unauthorized status change attempt", { anonId, taskId, endpoint: "POST /api/tasks/[taskId]/status" });
       return NextResponse.json(
         { error: { message: "Not the claimant", code: "FORBIDDEN" } },
         { status: 403 }
@@ -47,6 +58,7 @@ export async function POST(
 
   // For other statuses, only the claimant can change
   if (task.claimedByAnonId !== anonId) {
+    console.warn("[SECURITY] Unauthorized status change attempt", { anonId, taskId, endpoint: "POST /api/tasks/[taskId]/status" });
     return NextResponse.json(
       { error: { message: "Only the claimant can change task status", code: "FORBIDDEN" } },
       { status: 403 }

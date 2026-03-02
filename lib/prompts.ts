@@ -40,17 +40,20 @@ export function buildIdeaPrompt(
   platform?: string,
   constraints?: string
 ): string {
-  let prompt = rawInput;
+  // Wrap each user-supplied field in XML delimiters to prevent prompt injection
+  let prompt = `<idea>\n${rawInput}\n</idea>`;
 
   if (targetUsers) {
-    prompt += `\n\nTarget users: ${targetUsers}`;
+    prompt += `\n\n<target_users>\n${targetUsers}\n</target_users>`;
   }
   if (platform) {
-    prompt += `\nPlatform: ${platform}`;
+    prompt += `\n\n<platform>\n${platform}\n</platform>`;
   }
   if (constraints) {
-    prompt += `\nConstraints: ${constraints}`;
+    prompt += `\n\n<constraints>\n${constraints}\n</constraints>`;
   }
+
+  prompt += "\n\nFollow the JSON schema exactly. Return only valid JSON.";
 
   return prompt;
 }

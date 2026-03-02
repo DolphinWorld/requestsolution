@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
   // Rate limit by anon_id
   const rl = rateLimit(`idea:${anonId}`, 5);
   if (!rl.success) {
+    console.warn("[SECURITY] Rate limit exceeded", { anonId, endpoint: "POST /api/ideas" });
     return NextResponse.json(
       { error: { message: "Rate limited. Max 5 ideas per hour.", code: "RATE_LIMITED" } },
       { status: 429 }
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown";
   const rlIp = rateLimit(`idea:ip:${ip}`, 10);
   if (!rlIp.success) {
+    console.warn("[SECURITY] IP rate limit exceeded", { ip, endpoint: "POST /api/ideas" });
     return NextResponse.json(
       { error: { message: "Rate limited by IP.", code: "RATE_LIMITED" } },
       { status: 429 }

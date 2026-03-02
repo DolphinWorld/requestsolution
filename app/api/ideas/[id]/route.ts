@@ -49,8 +49,6 @@ export async function GET(
     data: {
       id: idea.id,
       createdAt: idea.createdAt,
-      createdByAnonId: idea.createdByAnonId,
-      rawInputText: idea.rawInputText,
       title: idea.title,
       problemStatement: idea.problemStatement,
       tags: JSON.parse(idea.tags || "[]"),

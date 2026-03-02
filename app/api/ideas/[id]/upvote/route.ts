@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAnonId } from "@/lib/anon-id";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(
   _request: NextRequest,
@@ -8,6 +9,15 @@ export async function POST(
 ) {
   const { id } = await params;
   const anonId = await getAnonId();
+
+  const rl = rateLimit(`upvote:${anonId}`, 60);
+  if (!rl.success) {
+    console.warn("[SECURITY] Rate limit exceeded", { anonId, endpoint: "POST /api/ideas/[id]/upvote" });
+    return NextResponse.json(
+      { error: { message: "Rate limited.", code: "RATE_LIMITED" } },
+      { status: 429 }
+    );
+  }
 
   const idea = await prisma.idea.findUnique({ where: { id } });
   if (!idea) {
@@ -47,6 +57,15 @@ export async function DELETE(
 ) {
   const { id } = await params;
   const anonId = await getAnonId();
+
+  const rl = rateLimit(`unvote:${anonId}`, 60);
+  if (!rl.success) {
+    console.warn("[SECURITY] Rate limit exceeded", { anonId, endpoint: "DELETE /api/ideas/[id]/upvote" });
+    return NextResponse.json(
+      { error: { message: "Rate limited.", code: "RATE_LIMITED" } },
+      { status: 429 }
+    );
+  }
 
   const existing = await prisma.vote.findUnique({
     where: { ideaId_anonId: { ideaId: id, anonId } },
